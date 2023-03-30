@@ -26,6 +26,27 @@ DV_ORDER = ['resourceType', 'id', 'meta', 'status', 'category', 'code',
 SID_ORDER = ['resourceType', 'id', 'meta', 'status', 'category',
              'code', 'subject', 'valueCodeableConcept', 'derivedFrom']
 
+CS_LOINC = "http://loinc.org"
+CS_UCUM = "http://unitsofmeasure.org"
+CS_SEQUENCE_ONTOLOGY = "http://sequenceontology.org"
+CS_VARNOMEN = "http://varnomen.hgvs.org"
+
+CS_NCBI_MEDGEN = "http://www.ncbi.nlm.nih.gov/medgen"
+CS_NCBI_NUCCORE = "http://www.ncbi.nlm.nih.gov/nuccore"
+CS_NCBI_REFSEQ = "http://www.ncbi.nlm.nih.gov/refseq"
+
+CS_HL7_ABSENT_REASON = "http://terminology.hl7.org/CodeSystem/data-absent-reason"
+CS_HL7_OBSERVATION_CATEGORY = "http://terminology.hl7.org/CodeSystem/observation-category"
+CS_HL7_SEQUENCE_PHASE_RELATIONSHIP = "http://hl7.org/fhir/uv/genomics-reporting/CodeSystem/SequencePhaseRelationshipCS"
+CS_HL7_SERVICE_SECTION = "http://terminology.hl7.org/CodeSystem/v2-0074"
+CS_HL7_TBD_CODES = "http://hl7.org/fhir/uv/genomics-reporting/CodeSystem/TbdCodes"
+
+SD_DIAGNOSTIC_IMPLICATION = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/diagnostic-implication"
+SD_GENOMICS_REPORT = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/genomics-report"
+SD_REGION_STUDIED = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/region-studied"
+SD_SEQUENCE_PHASE_RELATIONSHIP = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/sequence-phase-relationship"
+SD_VARIANT = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/variant"
+
 
 class _Fhir_Helper:
     def __init__(self, patientID):
@@ -40,17 +61,16 @@ class _Fhir_Helper:
             self, reportable_query_regions, nocall_regions):
         observation_rs_components = []
         ranges_examined_component = get_codeable_concept(
-            "http://loinc.org", "51959-5",
+            CS_LOINC, "51959-5",
             "Range(s) of DNA sequence examined"
         )
-        if(reportable_query_regions is not None and
+        if (reportable_query_regions is not None and
            len(reportable_query_regions) == 0):
             obv_comp = observation.ObservationComponent()
             obv_comp.code = ranges_examined_component
             obv_comp\
                 .dataAbsentReason = get_codeable_concept(
-                    ("http://terminology.hl7.org/" +
-                     "CodeSystem/data-absent-reason"), "not-performed",
+                    CS_HL7_ABSENT_REASON, "not-performed",
                     "Not Performed"
                 )
             observation_rs_components.append(obv_comp)
@@ -65,8 +85,7 @@ class _Fhir_Helper:
         for _, row in nocall_regions.df.iterrows():
             obv_comp = observation.ObservationComponent()
             obv_comp.code = get_codeable_concept(
-                ("http://hl7.org/fhir/uv/genomics" +
-                 "-reporting/CodeSystem/TbdCodes"), "uncallable-regions",
+                CS_HL7_TBD_CODES, "uncallable-regions",
                 "Uncallable Regions"
             )
             obv_comp.valueRange = valRange.Range({"low": {"value": float(
@@ -76,10 +95,10 @@ class _Fhir_Helper:
         return observation_rs_components
 
     def _add_phase_records(self, record):
-        if(record.samples[0].phased is False):
+        if (record.samples[0].phased is False):
             return
         sample_data = record.samples[0].data
-        if(sample_data.GT is not None and
+        if (sample_data.GT is not None and
            len(sample_data.GT.split('|')) >= 2 and
            'PS' in sample_data._fields):
             sample_data_ps = sample_data.PS
@@ -92,15 +111,13 @@ class _Fhir_Helper:
             {"reference": "Patient/" + self.patientID})
         self.report.id = "dr-" + uuid4().hex[:13]
         self.report.meta = meta.Meta({
-                            "profile": [
-                                ("http://hl7.org/fhir/uv/genomics-reporting" +
-                                 "/StructureDefinition/genomics-report")]})
+            "profile": [SD_GENOMICS_REPORT]})
         self.report.status = "final"
         self.report.category = get_codeable_concept(
-            "http://terminology.hl7.org/CodeSystem/v2-0074", "GE"
+            CS_HL7_SERVICE_SECTION, "GE"
         )
         self.report.code = get_codeable_concept(
-            "http://loinc.org", "81247-9",
+            CS_LOINC, "81247-9",
             "Master HL7 genetic variant reporting panel"
         )
         self.report.subject = patient_reference
@@ -109,9 +126,9 @@ class _Fhir_Helper:
 
     def add_regionstudied_obv(
             self, ref_seq, reportable_query_regions, nocall_regions):
-        if(((not (reportable_query_regions is not None) and
+        if (((not (reportable_query_regions is not None) and
            (len(reportable_query_regions) == 0))) and
-           (reportable_query_regions.empty and nocall_regions.empty)):
+                (reportable_query_regions.empty and nocall_regions.empty)):
             return
         patient_reference = reference.FHIRReference(
             {"reference": "Patient/" + self.patientID})
@@ -122,34 +139,31 @@ class _Fhir_Helper:
         contained_rs = observation_rs
         contained_rs.id = contained_uid
         observation_rs.resource_type = "Observation"
-        contained_rs.meta = meta.Meta({"profile": [
-                                      ("http://hl7.org/fhir/uv/" +
-                                       "genomics-reporting/" +
-                                       "StructureDefinition/region-studied")]})
+        contained_rs.meta = meta.Meta({"profile": [SD_REGION_STUDIED]})
         observation_rs.code = get_codeable_concept(
-            "http://loinc.org", "53041-0", "DNA region of interest panel"
+            CS_LOINC, "53041-0", "DNA region of interest panel"
         )
         observation_rs.status = "final"
         observation_rs.category = [get_codeable_concept(
-            "http://terminology.hl7.org/CodeSystem/observation-category",
+            CS_HL7_OBSERVATION_CATEGORY,
             "laboratory"
         )]
         observation_rs.subject = patient_reference
         observation_rs_component1 = observation.ObservationComponent()
         observation_rs_component1.code = get_codeable_concept(
-            "http://loinc.org", "92822-6", "Genomic coord system"
+            CS_LOINC, "92822-6", "Genomic coord system"
         )
         observation_rs_component1\
             .valueCodeableConcept = get_codeable_concept(
-                "http://loinc.org", "LA30102-0", "1-based character counting"
+                CS_LOINC, "LA30102-0", "1-based character counting"
             )
         observation_rs_component2 = observation.ObservationComponent()
         observation_rs_component2.code = get_codeable_concept(
-            "http://loinc.org", "48013-7", "Genomic reference sequence ID"
+            CS_LOINC, "48013-7", "Genomic reference sequence ID"
         )
         observation_rs_component2\
             .valueCodeableConcept = get_codeable_concept(
-                "http://www.ncbi.nlm.nih.gov/nuccore", ref_seq
+                CS_NCBI_NUCCORE, ref_seq
             )
         observation_rs_components = self._get_region_studied_component(
             reportable_query_regions, nocall_regions)
@@ -169,17 +183,14 @@ class _Fhir_Helper:
         observation_di.resource_type = "Observation"
         observation_di.id = contained_uid
         observation_di.meta =\
-            meta.Meta({"profile": [("http://hl7.org/fhir/uv/genomics-" +
-                                    "reporting/StructureDefinition/" +
-                                    "diagnostic-implication")]})
+            meta.Meta({"profile": [SD_DIAGNOSTIC_IMPLICATION]})
         observation_di.subject = variant_reference
         observation_di.code = get_codeable_concept(
-            ("http://hl7.org/fhir/uv/genomics-reporting" +
-             "/CodeSystem/TbdCodes"),
+            CS_HL7_TBD_CODES,
             "diagnostic-implication", "Diagnostic Implication")
         observation_di.status = "final"
         observation_di.category = [get_codeable_concept(
-            "http://terminology.hl7.org/CodeSystem/observation-category",
+            CS_HL7_OBSERVATION_CATEGORY,
             "laboratory"
         )]
         observation_di.component = []
@@ -187,23 +198,23 @@ class _Fhir_Helper:
         clin_sig_code = CLIN_SIG_TO_CODE.get(annotation_record['clin_sig'])
         clinical_significance_component = observation.ObservationComponent()
         clinical_significance_component.code = get_codeable_concept(
-            "http://loinc.org",
+            CS_LOINC,
             "53037-8", "Genetic variation clinical significance [Imp]"
         )
         clinical_significance_component\
             .valueCodeableConcept = get_codeable_concept(
-                "http://loinc.org",
+                CS_LOINC,
                 clin_sig_code, annotation_record['clin_sig']
             )
 
         if annotation_record['phenotype'] is not None:
             associated_phenotype_component = observation.ObservationComponent()
             associated_phenotype_component.code = get_codeable_concept(
-                "http://loinc.org", "81259-4", "predicted phenotype"
+                CS_LOINC, "81259-4", "predicted phenotype"
             )
             associated_phenotype_component\
                 .valueCodeableConcept = get_codeable_concept(
-                    "http://www.ncbi.nlm.nih.gov/medgen",
+                    CS_NCBI_MEDGEN,
                     annotation_record['phenotype'].split('^')[0],
                     annotation_record['phenotype'].split('^')[1]
                 )
@@ -230,23 +241,20 @@ class _Fhir_Helper:
         observation_dv.resource_type = "Observation"
         observation_dv.meta = meta.Meta(
             {
-                "profile": [
-                    ("http://hl7.org/fhir/uv/" +
-                     "genomics-reporting/StructureDefinition/variant")
-                ]
+                "profile": [SD_VARIANT]
             }
         )
         observation_dv.status = "final"
         observation_dv.category = [get_codeable_concept(
-            "http://terminology.hl7.org/CodeSystem/observation-category",
+            CS_HL7_OBSERVATION_CATEGORY,
             "laboratory"
         )]
         observation_dv.code = get_codeable_concept(
-            "http://loinc.org", "69548-6", "Genetic variant assessment"
+            CS_LOINC, "69548-6", "Genetic variant assessment"
         )
         observation_dv.subject = patient_reference
         observation_dv.valueCodeableConcept = get_codeable_concept(
-            "http://loinc.org", "LA9633-4", "present"
+            CS_LOINC, "LA9633-4", "present"
         )
         observation_dv.component = []
 
@@ -254,19 +262,19 @@ class _Fhir_Helper:
             dna_chg = get_dna_chg(record.INFO['SVTYPE'])
             dna_change_type_component = observation.ObservationComponent()
             dna_change_type_component.code = get_codeable_concept(
-                "http://loinc.org", "48019-4", "DNA Change Type"
+                CS_LOINC, "48019-4", "DNA Change Type"
             )
             dna_change_type_component\
                 .valueCodeableConcept = get_codeable_concept(
-                    "http://sequenceontology.org", dna_chg['CODE'],
+                    CS_SEQUENCE_ONTOLOGY, dna_chg['CODE'],
                     dna_chg['DISPLAY']
                 )
 
-            if(record.INFO['SVTYPE'] in list(SVs - {'INV', 'INS'}) and
+            if (record.INFO['SVTYPE'] in list(SVs - {'INV', 'INS'}) and
                hasattr(record.samples[0].data, 'CN')):
                 copy_number_component = observation.ObservationComponent()
                 copy_number_component.code = get_codeable_concept(
-                    "http://loinc.org", "82155-3",
+                    CS_LOINC, "82155-3",
                     "Genomic Structural Variant copy Number"
                 )
                 copy_number = record.samples[0]["CN"]
@@ -275,7 +283,7 @@ class _Fhir_Helper:
                 copy_number_component\
                     .valueQuantity = quantity.Quantity(
                         {
-                            "system": "http://unitsofmeasure.org",
+                            "system": CS_UCUM,
                             "code": '1',
                             "value": copy_number
                         }
@@ -293,7 +301,7 @@ class _Fhir_Helper:
                 outer_end = record.INFO['END'] + record.INFO['CIEND'][1]
                 outer_start_end_component = observation.ObservationComponent()
                 outer_start_end_component.code = get_codeable_concept(
-                    "http://loinc.org", "81301-4",
+                    CS_LOINC, "81301-4",
                     "Variant outer start-end"
                 )
                 outer_start_end_component\
@@ -313,7 +321,7 @@ class _Fhir_Helper:
 
             inner_start_end_component = observation.ObservationComponent()
             inner_start_end_component.code = get_codeable_concept(
-                "http://loinc.org", "81302-2",
+                CS_LOINC, "81302-2",
                 "Variant inner start-end"
             )
             inner_start_end_component\
@@ -332,12 +340,12 @@ class _Fhir_Helper:
                 allelic_frequency_component =\
                     observation.ObservationComponent()
                 allelic_frequency_component.code = get_codeable_concept(
-                    "http://loinc.org", "81258-6", "Sample VAF"
+                    CS_LOINC, "81258-6", "Sample VAF"
                 )
                 allelic_frequency_component\
                     .valueQuantity = quantity.Quantity(
                         {
-                            "system": "http://unitsofmeasure.org",
+                            "system": CS_UCUM,
                             "code": "1",
                             "value": alleles['FREQUENCY']
                         }
@@ -345,7 +353,7 @@ class _Fhir_Helper:
 
             exact_start_end_component = observation.ObservationComponent()
             exact_start_end_component.code = get_codeable_concept(
-                "http://loinc.org", "81254-5",
+                CS_LOINC, "81254-5",
                 "Variant exact start-end"
             )
             exact_start_end_component.valueRange = valRange.Range(
@@ -353,22 +361,22 @@ class _Fhir_Helper:
 
         ref_seq_id_component = observation.ObservationComponent()
         ref_seq_id_component.code = get_codeable_concept(
-            "http://loinc.org", "48013-7", "Genomic reference sequence ID"
+            CS_LOINC, "48013-7", "Genomic reference sequence ID"
         )
         ref_seq_id_component\
             .valueCodeableConcept = get_codeable_concept(
-                "http://www.ncbi.nlm.nih.gov/nuccore", ref_seq
+                CS_NCBI_NUCCORE, ref_seq
             )
 
         if genomic_source_class in Genomic_Source_Class.set_() - {MIXED}:
             source_class = get_genomic_source_class(genomic_source_class)
             genomic_source_class_component = observation.ObservationComponent()
             genomic_source_class_component.code = get_codeable_concept(
-                "http://loinc.org", "48002-0", "Genomic Source Class"
+                CS_LOINC, "48002-0", "Genomic Source Class"
             )
             genomic_source_class_component\
                 .valueCodeableConcept = get_codeable_concept(
-                    "http://loinc.org", source_class["CODE"],
+                    CS_LOINC, source_class["CODE"],
                     source_class["DISPLAY"]
                 )
 
@@ -376,77 +384,77 @@ class _Fhir_Helper:
         # allelic display is not an empty string and genomic source
         # class is 'germline' for simple variants and structural variants
         # with INFO.SVTYPE in ['INS', 'DEL', 'DUP', 'INV']
-        if((alleles['CODE'] != "" or alleles['ALLELE'] != "") and
+        if ((alleles['CODE'] != "" or alleles['ALLELE'] != "") and
             genomic_source_class == Genomic_Source_Class.GERMLINE.value and
             not (record.is_sv and
                  record.INFO['SVTYPE'] not in list(SVs - {'CNV'}))):
             allelic_state_component = observation.ObservationComponent()
             allelic_state_component.code = get_codeable_concept(
-                "http://loinc.org", "53034-5", "Allelic state"
+                CS_LOINC, "53034-5", "Allelic state"
             )
             allelic_state_component\
                 .valueCodeableConcept = get_codeable_concept(
-                    "http://loinc.org", alleles['CODE'], alleles['ALLELE']
+                    CS_LOINC, alleles['CODE'], alleles['ALLELE']
                 )
 
         ref_allele_component = observation.ObservationComponent()
         ref_allele_component.code = get_codeable_concept(
-            "http://loinc.org", "69547-8", "Genomic Ref allele [ID]"
+            CS_LOINC, "69547-8", "Genomic Ref allele [ID]"
         )
         ref_allele_component.valueString = record.REF
 
         genomic_coord_system_component = observation.ObservationComponent()
         genomic_coord_system_component.code = get_codeable_concept(
-            "http://loinc.org", "92822-6", "Genomic coord system"
+            CS_LOINC, "92822-6", "Genomic coord system"
         )
         genomic_coord_system_component\
             .valueCodeableConcept = get_codeable_concept(
-                "http://loinc.org", "LA30102-0", "1-based character counting"
+                CS_LOINC, "LA30102-0", "1-based character counting"
             )
 
         if annotation_record['transcript_ref_seq'] is not None:
             transcript_ref_seq_component =\
                 observation.ObservationComponent()
             transcript_ref_seq_component.code = get_codeable_concept(
-                "http://loinc.org", "51958-7",
+                CS_LOINC, "51958-7",
                 "Transcript reference sequence [ID]"
             )
             transcript_ref_seq_component\
                 .valueCodeableConcept = get_codeable_concept(
-                    "http://www.ncbi.nlm.nih.gov/refseq",
+                    CS_NCBI_REFSEQ,
                     annotation_record['transcript_ref_seq'],
                     annotation_record['transcript_ref_seq']
                 )
 
         dna_chg_component = observation.ObservationComponent()
         dna_chg_component.code = get_codeable_concept(
-            "http://loinc.org", "48004-6",
+            CS_LOINC, "48004-6",
             "DNA change (c.HGVS)"
         )
         dna_chg_component\
             .valueCodeableConcept = get_codeable_concept(
-                "http://varnomen.hgvs.org", annotation_record['dna_change']
+                CS_VARNOMEN, annotation_record['dna_change']
             )
 
         if annotation_record['amino_acid_change'] is not None:
             amino_acid_chg_component = observation.ObservationComponent()
             amino_acid_chg_component.code = get_codeable_concept(
-                "http://loinc.org", "48005-3", "Amino acid change (pHGVS)"
+                CS_LOINC, "48005-3", "Amino acid change (pHGVS)"
             )
             amino_acid_chg_component\
                 .valueCodeableConcept = get_codeable_concept(
-                    "http://varnomen.hgvs.org",
+                    CS_VARNOMEN,
                     annotation_record['amino_acid_change'],
                     annotation_record['amino_acid_change']
                 )
 
         for alt in record.ALT:
-            if(alt is not None and
+            if (alt is not None and
                alt.type in ['SNV', 'MNV'] and
                not (record.is_sv and record.INFO['SVTYPE'] not in ['INS'])):
                 alt_allele_component = observation.ObservationComponent()
                 alt_allele_component.code = get_codeable_concept(
-                    "http://loinc.org", "69551-0", "Genomic Alt allele [ID]"
+                    CS_LOINC, "69551-0", "Genomic Alt allele [ID]"
                 )
                 alt_allele_component.valueString = f"{alt}"
                 observation_dv.component = []
@@ -493,22 +501,18 @@ class _Fhir_Helper:
             observation_sid.resource_type = "Observation"
             observation_sid.id = siduid
             observation_sid.meta = meta.Meta({"profile": [
-                                             ("http://hl7.org/fhir/uv/" +
-                                              "genomics-reporting/" +
-                                              "StructureDefinition/" +
-                                              "sequence-phase-relationship")]})
+                                             SD_SEQUENCE_PHASE_RELATIONSHIP]})
             observation_sid.status = "final"
             observation_sid.category = [get_codeable_concept(
-                "http://terminology.hl7.org/CodeSystem/observation-category",
+                CS_HL7_OBSERVATION_CATEGORY,
                 "laboratory"
             )]
             observation_sid.code = get_codeable_concept(
-                "http://loinc.org", "82120-7", "Allelic phase"
+                CS_LOINC, "82120-7", "Allelic phase"
             )
             observation_sid.subject = patient_reference
             observation_sid.valueCodeableConcept = get_codeable_concept(
-                ("http://hl7.org/fhir/uv/genomics-reporting/CodeSystem/" +
-                 "SequencePhaseRelationshipCS"),
+                CS_HL7_SEQUENCE_PHASE_RELATIONSHIP,
                 self.sequence_rels.at[index, 'Relation'],
                 self.sequence_rels.at[index, 'Relation']
             )
@@ -584,7 +588,7 @@ class _Fhir_Helper:
                 od_contained_k[v_c_c]['coding'][0] =\
                     createOrderedDict(i[v_c_c]['coding'][0], CODE_ORD)
 
-            if((i['id'].startswith('dv-')) or
+            if ((i['id'].startswith('dv-')) or
                (i['id'].startswith('rs-')) or
                (i['id'].startswith('di-'))):
                 for q, j in enumerate(i['component']):
