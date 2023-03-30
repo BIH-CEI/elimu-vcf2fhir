@@ -42,7 +42,7 @@ CS_HL7_SERVICE_SECTION = "http://terminology.hl7.org/CodeSystem/v2-0074"
 CS_HL7_TBD_CODES = "http://hl7.org/fhir/uv/genomics-reporting/CodeSystem/TbdCodes"
 
 SD_DIAGNOSTIC_IMPLICATION = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/diagnostic-implication"
-SD_GENOMICS_REPORT = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/genomics-report"
+SD_GENOMICS_REPORT = "https://www.medizininformatik-initiative.de/fhir/ext/modul-molgen/StructureDefinition/molekulargenetischer-befundbericht"
 SD_REGION_STUDIED = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/region-studied"
 SD_SEQUENCE_PHASE_RELATIONSHIP = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/sequence-phase-relationship"
 SD_VARIANT = "http://hl7.org/fhir/uv/genomics-reporting/StructureDefinition/variant"
