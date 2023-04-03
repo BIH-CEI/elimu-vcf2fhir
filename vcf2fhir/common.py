@@ -98,23 +98,23 @@ def get_sequence_relation(phased_rec_map):
                 continue
             prev_data = prev_record.samples[0].data
             record_data = record.samples[0].data
-            if(prev_data.PS == record_data.PS):
+            if (prev_data.PS == record_data.PS):
                 if prev_data.GT == record_data.GT:
-                    Relation_table = Relation_table.append(
-                        {
+                    Relation_table = pd.concat(
+                        [Relation_table, pd.DataFrame([{
                             'POS1': prev_record.POS,
                             'POS2': record.POS,
                             'Relation': 'Cis'
-                        },
+                        }])],
                         ignore_index=True
                     )
                 else:
-                    Relation_table = Relation_table.append(
-                        {
+                    Relation_table = pd.concat(
+                        [Relation_table, pd.DataFrame([{
                             'POS1': prev_record.POS,
                             'POS2': record.POS,
                             'Relation': 'Trans'
-                        },
+                        }])],
                         ignore_index=True
                     )
             prev_record = record
@@ -145,7 +145,7 @@ def get_allelic_state(record, ratio_ad_dp):
           alleles[0] == '1'):
         if hasattr(sample.data, 'AD') and hasattr(sample.data, 'DP'):
             try:
-                if(isinstance(sample.data.AD, list) and
+                if (isinstance(sample.data.AD, list) and
                    len(sample.data.AD) > 0):
                     ratio = float(
                         sample.data.AD[0]) / float(sample.data.DP)
@@ -168,10 +168,10 @@ def get_allelic_state(record, ratio_ad_dp):
     else:
         _error_log_allelicstate(record)
     return {
-                'ALLELE': allelic_state,
-                'CODE': allelic_code,
-                'FREQUENCY': allelic_frequency
-            }
+        'ALLELE': allelic_state,
+        'CODE': allelic_code,
+        'FREQUENCY': allelic_frequency
+    }
 
 
 def extract_chrom_identifier(chrom):
@@ -239,7 +239,7 @@ def createOrderedDict(value_from, order):
 
 
 def is_present(annotation, component):
-    if(not annotation[component].empty and
+    if (not annotation[component].empty and
        not pd.isna(annotation.iloc[0][component])):
         return True
     else:
@@ -256,31 +256,31 @@ def get_annotations(record, annotations, spdi_representation):
                 'gene_studied': 'HGNC:0000^NoGene^HGNC'}
 
     annotation = annotations[
-                    (annotations['CHROM'] == f'chr{record.CHROM}') &
-                    (annotations['POS'] == record.POS)
-                ]
+        (annotations['CHROM'] == f'chr{record.CHROM}') &
+        (annotations['POS'] == record.POS)
+    ]
     if len(annotation) == 0:
         return None
     else:
-        if(is_present(annotation, 'cHGVS') and
+        if (is_present(annotation, 'cHGVS') and
            is_present(annotation, 'transcriptRefSeq')):
             transcript_ref_seq = annotation.iloc[0]['transcriptRefSeq']
             dna_change = (f'{annotation.iloc[0]["transcriptRefSeq"]}:' +
                           f'{annotation.iloc[0]["cHGVS"]}')
-        elif(is_present(annotation, 'cHGVS') and
-             not is_present(annotation, 'transcriptRefSeq')):
+        elif (is_present(annotation, 'cHGVS') and
+              not is_present(annotation, 'transcriptRefSeq')):
             transcript_ref_seq = None
             dna_change = f'{annotation.iloc[0]["cHGVS"]}'
         else:
             transcript_ref_seq = None
             dna_change = spdi_representation
 
-        if(is_present(annotation, 'pHGVS') and
+        if (is_present(annotation, 'pHGVS') and
            is_present(annotation, 'proteinRefSeq')):
             amino_acid_change = (f'{annotation.iloc[0]["proteinRefSeq"]}:' +
                                  f'{annotation.iloc[0]["pHGVS"]}')
-        elif(is_present(annotation, 'pHGVS') and
-             not is_present(annotation, 'proteinRefSeq')):
+        elif (is_present(annotation, 'pHGVS') and
+              not is_present(annotation, 'proteinRefSeq')):
             amino_acid_change = f'{annotation.iloc[0]["pHGVS"]}'
         else:
             amino_acid_change = None
